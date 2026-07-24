@@ -1,7 +1,12 @@
+import importlib
 import os
+import sys
+import threading
+import time
 
 import requests
 import streamlit as st
+import uvicorn
 
 # Configure Streamlit page layout
 st.set_page_config(
@@ -13,6 +18,52 @@ st.set_page_config(
 
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
 API_BASE_URL = os.getenv("API_BASE_URL", f"http://127.0.0.1:{BACKEND_PORT}/api/v1")
+
+
+@st.cache_resource
+def _start_backend_server():
+    """Start Uvicorn serving the FastAPI app in a background daemon thread.
+
+    Uses importlib to import the 'app' package so that the module name
+    'app.main' resolves to the *package directory* rather than this file
+    (app/frontend/app.py), which would otherwise shadow it.
+    """
+    # Ensure the project root is on sys.path so 'app' resolves to the package
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+    # Clear any stale module entry that points to this file instead of the package
+    if "app" in sys.modules and not hasattr(sys.modules["app"], "__path__"):
+        del sys.modules["app"]
+
+    main_module = importlib.import_module("app.main")
+    fastapi_app = getattr(main_module, "app")
+
+    config = uvicorn.Config(
+        fastapi_app,
+        host="0.0.0.0",
+        port=BACKEND_PORT,
+        log_level="warning",
+    )
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+
+    # Wait until the server is actually accepting connections
+    for _ in range(40):
+        try:
+            r = requests.get(
+                f"http://127.0.0.1:{BACKEND_PORT}/api/v1/health", timeout=1
+            )
+            if r.status_code == 200:
+                return
+        except Exception:
+            time.sleep(0.5)
+
+
+# Boot the backend immediately on first import
+_start_backend_server()
 
 # Cyber Security Theme CSS
 CUSTOM_CSS = """
