@@ -1,8 +1,9 @@
 import os
+import subprocess
+import sys
+import time
 import requests
 import streamlit as st
-
-
 
 # Configure Streamlit page layout
 st.set_page_config(
@@ -65,15 +66,49 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 def check_backend_health() -> bool:
     """Verify backend connectivity to FastAPI server."""
-    try:
-        response = requests.get(f"{API_BASE_URL}/health", timeout=3)
-        return response.status_code == 200 and response.json().get("status") == "ok"
-    except Exception:
-        return False
+    endpoints = [
+        f"{API_BASE_URL}/health",
+        "http://127.0.0.1:8000/api/v1/health",
+        "http://localhost:8000/api/v1/health",
+    ]
+    for target_url in endpoints:
+        try:
+            response = requests.get(target_url, timeout=2)
+            if response.status_code == 200 and response.json().get("status") == "ok":
+                return True
+        except Exception:
+            continue
+    return False
+
+
+@st.cache_resource
+def auto_start_backend():
+    """Auto-start Uvicorn FastAPI backend if not already running."""
+    if not check_backend_health():
+        try:
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "uvicorn",
+                    "app.main:app",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    "8000",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            time.sleep(2.5)
+        except Exception:
+            pass
 
 
 def render_sidebar():
     """Render sidebar navigation and health indicator."""
+    auto_start_backend()
+
     st.sidebar.markdown("### 🛡️ VulnSense AI")
     st.sidebar.caption("Automated Risk Prioritization & Remediation")
     st.sidebar.divider()
@@ -83,6 +118,7 @@ def render_sidebar():
         st.sidebar.markdown('<span class="status-online">● Backend Online</span>', unsafe_allow_html=True)
     else:
         st.sidebar.markdown('<span class="status-offline">○ Backend Disconnected</span>', unsafe_allow_html=True)
+
 
     st.sidebar.write("")
     nav_option = st.sidebar.radio(
