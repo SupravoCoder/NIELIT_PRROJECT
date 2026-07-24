@@ -32,7 +32,8 @@ htmlcov/
 *.sqlite
 
 # Generated reports and scan artifacts
-reports/
+/reports/
+!app/reports/
 scan_results/
 outputs/
 *.xml
