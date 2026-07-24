@@ -51,6 +51,16 @@ LOCAL_CVE_SEED = [
         affected_product="OpenSSL",
         affected_version="1.1.1k",
     ),
+    CVERecord(
+        cve_id="CVE-2020-14867",
+        description="Vulnerability in MySQL Server (component: Server: DDL) allows high-privileged attacker to cause a hang or crash via network protocols, resulting in denial of service.",
+        cvss_score=4.4,
+        cvss_severity=RiskSeverity.MEDIUM,
+        published_date="2020-10-21",
+        references=["https://nvd.nist.gov/vuln/detail/CVE-2020-14867"],
+        affected_product="MySQL",
+        affected_version="5.7.31",
+    ),
 ]
 
 
@@ -71,7 +81,14 @@ class NVDCVEEngine:
 
         logger.info(f"Searching CVE database for product='{product}' version='{version}'")
 
-        # Try live NVD API lookup if internet accessible
+        # In mock/fallback mode, use the local seed database first for reliable results
+        if use_local_fallback:
+            local_matches = self._match_local_seed_cves(product, version)
+            if local_matches:
+                logger.info(f"Local seed matched {len(local_matches)} CVEs for '{product}'")
+                return local_matches
+
+        # Try live NVD API lookup
         try:
             live_cves = self._query_nvd_api(product, version)
             if live_cves:
@@ -79,6 +96,7 @@ class NVDCVEEngine:
         except Exception as e:
             logger.warning(f"NVD API request failed/timed out: {e}. Using seed fallback database.")
 
+        # Final fallback to local seed if nothing else worked
         if use_local_fallback:
             return self._match_local_seed_cves(product, version)
 
