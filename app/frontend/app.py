@@ -229,8 +229,11 @@ def main():
 
     if not is_connected:
         st.warning(
-            "⚠️ Unable to reach FastAPI backend at `http://127.0.0.1:8000/api/v1/health`. "
-            "Please start backend service: `uvicorn app.main:app --reload`"
+            f"⚠️ **Unable to reach FastAPI backend at `{API_BASE_URL}/health`.**\n\n"
+            "**How to Fix:**\n"
+            "- **On Render (Single Service Deployment):** Set the **Start Command** in Render Web Service settings to `bash start.sh` (or `uvicorn app.main:app --host 0.0.0.0 --port 8000 & streamlit run app/frontend/app.py --server.port $PORT --server.address 0.0.0.0`).\n"
+            "- **On Render (Two Separate Services):** Add an environment variable `API_BASE_URL` in your frontend Web Service set to your backend URL (e.g. `https://your-backend.onrender.com/api/v1`).\n"
+            "- **Local Execution:** Run `uvicorn app.main:app --reload` in your terminal."
         )
 
     if nav_choice == "📊 Dashboard Overview":

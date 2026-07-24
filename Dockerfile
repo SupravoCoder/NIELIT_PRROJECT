@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code
 COPY . .
 
+# Make startup script executable
+RUN chmod +x start.sh
+
 # Expose ports for FastAPI (8000) and Streamlit (8501)
 EXPOSE 8000 8501
 
@@ -27,4 +30,5 @@ ENV API_BASE_URL=http://127.0.0.1:8000/api/v1
 ENV HOST=0.0.0.0
 
 # Startup script launching both FastAPI and Streamlit
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 & streamlit run app/frontend/app.py --server.port 8501 --server.address 0.0.0.0"]
+CMD ["/bin/bash", "./start.sh"]
+

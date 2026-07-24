@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: vulnsense-ai
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    envVars:
+      - key: API_BASE_URL
+        value: http://127.0.0.1:8000/api/v1
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DEBUG
+        value: "false"

@@ -63,6 +63,20 @@ This repository will be built in small, reviewable modules:
 12. Testing
 13. Docker deployment
 
+## Deployment on Render
+
+### Option A: Single Web Service (Backend + Frontend together)
+1. In Render Dashboard, create a new **Web Service**.
+2. Set **Build Command**: `pip install -r requirements.txt` (or use Docker environment).
+3. Set **Start Command**: `bash start.sh`
+   *(This launches the Uvicorn backend in the background on port 8000 and Streamlit on Render's assigned `$PORT`)*.
+
+### Option B: Separate Web Services (Backend & Frontend separately)
+1. **Backend Web Service**: Start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+2. **Frontend Web Service**: Start command `streamlit run app/frontend/app.py --server.port $PORT --server.address 0.0.0.0`
+3. Add environment variable on Frontend service:
+   `API_BASE_URL = https://<your-backend-service-name>.onrender.com/api/v1`
+
 ## Next Step
 
 Step 2 will add the FastAPI application skeleton and backend entry points.
