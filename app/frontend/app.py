@@ -197,7 +197,7 @@ def render_scan_page():
             try:
                 payload = {
                     "target": target_ip,
-                    "scan_arguments": scan_args.split()[0],
+                    "scan_arguments": scan_args.split(" (")[0],
                     "use_mock_fallback": use_mock,
                 }
                 resp = requests.post(f"{API_BASE_URL}/scan", json=payload, timeout=15)

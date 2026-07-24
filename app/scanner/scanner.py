@@ -35,7 +35,10 @@ class NmapScannerEngine:
                 logger.info(f"Executing live Nmap scan on target={target} args='{arguments}'")
                 scanner = nmap.PortScanner()
                 scan_raw = scanner.scan(hosts=target, arguments=arguments)
-                return self._parse_live_nmap_result(scan_id, target, scan_raw, start_time)
+                result = self._parse_live_nmap_result(scan_id, target, scan_raw, start_time)
+                if result.services or not allow_fallback:
+                    return result
+                logger.info("Live Nmap scan returned 0 services. Using simulated fallback result.")
             except Exception as e:
                 logger.warning(f"Live Nmap scan failed: {e}. Falling back to simulation if allowed.")
                 if not allow_fallback:
