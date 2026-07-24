@@ -1,9 +1,9 @@
 import os
-import subprocess
-import sys
+import threading
 import time
 import requests
 import streamlit as st
+import uvicorn
 
 # Configure Streamlit page layout
 st.set_page_config(
@@ -13,7 +13,41 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api/v1")
+BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
+API_BASE_URL = os.getenv("API_BASE_URL", f"http://127.0.0.1:{BACKEND_PORT}/api/v1")
+
+
+@st.cache_resource
+def _start_backend_server():
+    """Start Uvicorn serving the FastAPI app in a background daemon thread.
+
+    Uses st.cache_resource so this runs exactly once per Streamlit process,
+    even across re-runs. The daemon thread will be cleaned up automatically
+    when the main process exits.
+    """
+    from app.main import app as fastapi_app  # noqa: E402 — deferred import
+
+    config = uvicorn.Config(
+        fastapi_app,
+        host="0.0.0.0",
+        port=BACKEND_PORT,
+        log_level="warning",
+    )
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    # Wait until the server is actually accepting connections
+    for _ in range(20):
+        try:
+            r = requests.get(f"http://127.0.0.1:{BACKEND_PORT}/api/v1/health", timeout=1)
+            if r.status_code == 200:
+                break
+        except Exception:
+            time.sleep(0.25)
+
+
+# Boot the backend immediately on first import
+_start_backend_server()
 
 # Cyber Security Theme CSS
 CUSTOM_CSS = """
@@ -66,49 +100,15 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 def check_backend_health() -> bool:
     """Verify backend connectivity to FastAPI server."""
-    endpoints = [
-        f"{API_BASE_URL}/health",
-        "http://127.0.0.1:8000/api/v1/health",
-        "http://localhost:8000/api/v1/health",
-    ]
-    for target_url in endpoints:
-        try:
-            response = requests.get(target_url, timeout=2)
-            if response.status_code == 200 and response.json().get("status") == "ok":
-                return True
-        except Exception:
-            continue
-    return False
-
-
-@st.cache_resource
-def auto_start_backend():
-    """Auto-start Uvicorn FastAPI backend if not already running."""
-    if not check_backend_health():
-        try:
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    "-m",
-                    "uvicorn",
-                    "app.main:app",
-                    "--host",
-                    "0.0.0.0",
-                    "--port",
-                    "8000",
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            time.sleep(2.5)
-        except Exception:
-            pass
+    try:
+        response = requests.get(f"{API_BASE_URL}/health", timeout=2)
+        return response.status_code == 200 and response.json().get("status") == "ok"
+    except Exception:
+        return False
 
 
 def render_sidebar():
     """Render sidebar navigation and health indicator."""
-    auto_start_backend()
-
     st.sidebar.markdown("### 🛡️ VulnSense AI")
     st.sidebar.caption("Automated Risk Prioritization & Remediation")
     st.sidebar.divider()
@@ -118,6 +118,7 @@ def render_sidebar():
         st.sidebar.markdown('<span class="status-online">● Backend Online</span>', unsafe_allow_html=True)
     else:
         st.sidebar.markdown('<span class="status-offline">○ Backend Disconnected</span>', unsafe_allow_html=True)
+
 
 
     st.sidebar.write("")
@@ -265,11 +266,7 @@ def main():
 
     if not is_connected:
         st.warning(
-            f"⚠️ **Unable to reach FastAPI backend at `{API_BASE_URL}/health`.**\n\n"
-            "**How to Fix:**\n"
-            "- **On Render (Single Service Deployment):** Set the **Start Command** in Render Web Service settings to `bash start.sh` (or `uvicorn app.main:app --host 0.0.0.0 --port 8000 & streamlit run app/frontend/app.py --server.port $PORT --server.address 0.0.0.0`).\n"
-            "- **On Render (Two Separate Services):** Add an environment variable `API_BASE_URL` in your frontend Web Service set to your backend URL (e.g. `https://your-backend.onrender.com/api/v1`).\n"
-            "- **Local Execution:** Run `uvicorn app.main:app --reload` in your terminal."
+            "⚠️ Backend is starting up, please refresh the page in a few seconds..."
         )
 
     if nav_choice == "📊 Dashboard Overview":
