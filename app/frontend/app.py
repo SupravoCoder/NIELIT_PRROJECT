@@ -1,9 +1,7 @@
 import os
-import threading
-import time
+
 import requests
 import streamlit as st
-import uvicorn
 
 # Configure Streamlit page layout
 st.set_page_config(
@@ -15,39 +13,6 @@ st.set_page_config(
 
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
 API_BASE_URL = os.getenv("API_BASE_URL", f"http://127.0.0.1:{BACKEND_PORT}/api/v1")
-
-
-@st.cache_resource
-def _start_backend_server():
-    """Start Uvicorn serving the FastAPI app in a background daemon thread.
-
-    Uses st.cache_resource so this runs exactly once per Streamlit process,
-    even across re-runs. The daemon thread will be cleaned up automatically
-    when the main process exits.
-    """
-    from app.main import app as fastapi_app  # noqa: E402 — deferred import
-
-    config = uvicorn.Config(
-        fastapi_app,
-        host="0.0.0.0",
-        port=BACKEND_PORT,
-        log_level="warning",
-    )
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    # Wait until the server is actually accepting connections
-    for _ in range(20):
-        try:
-            r = requests.get(f"http://127.0.0.1:{BACKEND_PORT}/api/v1/health", timeout=1)
-            if r.status_code == 200:
-                break
-        except Exception:
-            time.sleep(0.25)
-
-
-# Boot the backend immediately on first import
-_start_backend_server()
 
 # Cyber Security Theme CSS
 CUSTOM_CSS = """
