@@ -197,7 +197,7 @@ def render_scan_page():
         with col2:
             scan_args = st.selectbox("Scan Profile", options=["-Pn -sV -T4 -F (Fast Version Scan)", "-Pn -sV -T4 (Standard Port Scan)"])
 
-        use_mock = st.checkbox("Enable Simulated Fallback Mode (Recommended if Nmap binary absent)", value=True)
+        use_mock = st.checkbox("Enable Simulated Fallback Mode (Recommended if Nmap binary absent)", value=False)
         submit_button = st.form_submit_button("🚀 Start Vulnerability Assessment", use_container_width=True)
 
     if submit_button:
