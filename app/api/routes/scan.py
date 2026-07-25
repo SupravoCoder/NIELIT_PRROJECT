@@ -35,14 +35,15 @@ async def run_vulnerability_assessment(request: PortScanRequest) -> ScanAssessme
         
         # Step 2: Match detected services against NVD CVE engine
         for s in scan_result.services:
-            if s.product:
+            prod_name = s.product or s.service_name
+            if prod_name and prod_name.lower() != "unknown":
                 cves = cve_engine.search_cves_for_service(
-                    product=s.product,
+                    product=prod_name,
                     version=s.version,
                     use_local_fallback=request.use_mock_fallback,
                 )
                 for c in cves:
-                    raw_cve_matches.append((s.port, s.service_name, s.product, c))
+                    raw_cve_matches.append((s.port, s.service_name, prod_name, c))
 
         # Step 3: Compute prioritized risk scores
         findings: list[VulnerabilityFinding] = RiskEngine.prioritize_findings(scan_result, raw_cve_matches)

@@ -178,11 +178,25 @@ class NVDCVEEngine:
         prod_lower = product.lower()
 
         for cve in LOCAL_CVE_SEED:
-            if cve.affected_product and cve.affected_product.lower() in prod_lower:
+            if not cve.affected_product:
+                continue
+            cve_prod_lower = cve.affected_product.lower()
+            # Match if product names overlap (e.g., 'apache' in 'apache http server' or vice-versa)
+            if cve_prod_lower in prod_lower or prod_lower in cve_prod_lower:
                 if version and cve.affected_version:
-                    if version.strip() == cve.affected_version.strip():
+                    # Match exact version or partial version prefix
+                    if version.strip() == cve.affected_version.strip() or version.strip().startswith(cve.affected_version.strip()):
                         matched.append(cve)
                 else:
+                    matched.append(cve)
+
+        # Fallback: if version specified but no exact version match, return product matches
+        if not matched and version:
+            for cve in LOCAL_CVE_SEED:
+                if not cve.affected_product:
+                    continue
+                cve_prod_lower = cve.affected_product.lower()
+                if cve_prod_lower in prod_lower or prod_lower in cve_prod_lower:
                     matched.append(cve)
 
         return matched
