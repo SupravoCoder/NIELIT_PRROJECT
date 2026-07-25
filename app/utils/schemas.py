@@ -49,6 +49,10 @@ class CVERecord(BaseModel):
     references: List[str] = Field(default_factory=list)
     affected_product: Optional[str] = None
     affected_version: Optional[str] = None
+    epss_score: Optional[float] = None
+    epss_percentile: Optional[float] = None
+    in_cisa_kev: bool = False
+    cisa_kev_due_date: Optional[str] = None
 
 
 class VulnerabilityFinding(BaseModel):
@@ -61,6 +65,10 @@ class VulnerabilityFinding(BaseModel):
     cve: CVERecord
     risk_score: float
     severity: RiskSeverity
+    tri_factor_score: float = 0.0
+    epss_score: Optional[float] = None
+    in_cisa_kev: bool = False
+    compliance_tags: dict[str, str] = Field(default_factory=dict)
     llm_explanation: Optional[str] = None
     remediation_guidance: Optional[str] = None
 

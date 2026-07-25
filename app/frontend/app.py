@@ -243,14 +243,34 @@ def render_scan_page():
         c3.info(f"Medium: {dist.get('MEDIUM', 0)}")
         c4.success(f"Low/Info: {dist.get('LOW', 0) + dist.get('INFO', 0)}")
 
-        st.subheader("Prioritized Vulnerability Matrix")
+        st.subheader("Prioritized Tri-Factor Vulnerability Matrix (CVSS + EPSS + CISA KEV)")
         findings = scan.get("findings", [])
         if findings:
             for f in findings:
-                with st.expander(f"⚠️ [{f['severity']}] {f['cve']['cve_id']} — {f['product']} {f['version']} (Port {f['port']}) — Risk Score: {f['risk_score']}"):
+                epss_val = f['cve'].get('epss_score')
+                epss_str = f" | EPSS: {round(epss_val * 100, 1)}%" if epss_val else ""
+                kev_str = " | 🚨 CISA KEV" if f['cve'].get('in_cisa_kev') else ""
+
+                with st.expander(f"⚠️ [{f['severity']}] {f['cve']['cve_id']} — {f['product']} {f['version']} (Port {f['port']}){epss_str}{kev_str} — Risk Score: {f['risk_score']}"):
+                    if f['cve'].get('in_cisa_kev'):
+                        st.error("🚨 **CISA KEV ALERT**: This vulnerability is actively exploited in the wild by threat actors!")
+                    if f['cve'].get('epss_score'):
+                        st.info(f"📊 **EPSS Threat Metric**: Exploit Probability **{round(f['cve']['epss_score'] * 100, 1)}%** within 30 days (Percentile: {round((f['cve'].get('epss_percentile') or 0.0) * 100, 1)}%)")
+
                     st.write(f"**Description**: {f['cve']['description']}")
                     st.write(f"**AI Plain Language Explanation**: {f.get('llm_explanation', 'N/A')}")
                     st.write(f"**Remediation & Patch Guidance**: {f.get('remediation_guidance', 'N/A')}")
+
+                    comp_tags = f.get("compliance_tags", {})
+                    if comp_tags:
+                        st.markdown(
+                            f"🏛️ **Regulatory Compliance Cross-Reference**:<br/>"
+                            f"• **🇮🇳 CERT-In (India)**: `{comp_tags.get('cert_in', 'N/A')}`<br/>"
+                            f"• **🌐 NIST SP 800-53**: `{comp_tags.get('nist', 'N/A')}`<br/>"
+                            f"• **🛡️ ISO/IEC 27001**: `{comp_tags.get('iso', 'N/A')}`",
+                            unsafe_allow_html=True,
+                        )
+
                     if f['cve'].get('references'):
                         st.markdown(f"**Reference Link**: [{f['cve']['references'][0]}]({f['cve']['references'][0]})")
         else:
