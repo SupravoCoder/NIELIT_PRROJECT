@@ -61,6 +61,26 @@ LOCAL_CVE_SEED = [
         affected_product="MySQL",
         affected_version="5.7.31",
     ),
+    CVERecord(
+        cve_id="CVE-2021-23017",
+        description="A 1-byte memory overwrite flaw was found in Nginx resolver. A remote attacker could cause a worker process crash or potential arbitrary code execution.",
+        cvss_score=8.1,
+        cvss_severity=RiskSeverity.HIGH,
+        published_date="2021-05-25",
+        references=["https://nvd.nist.gov/vuln/detail/CVE-2021-23017"],
+        affected_product="Nginx",
+        affected_version="1.20.0",
+    ),
+    CVERecord(
+        cve_id="CVE-2019-9193",
+        description="Command execution vulnerability in PostgreSQL COPY FROM PROGRAM allows authenticated database users to execute arbitrary operating system commands.",
+        cvss_score=8.8,
+        cvss_severity=RiskSeverity.HIGH,
+        published_date="2019-04-01",
+        references=["https://nvd.nist.gov/vuln/detail/CVE-2019-9193"],
+        affected_product="PostgreSQL",
+        affected_version="11.2",
+    ),
 ]
 
 

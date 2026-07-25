@@ -1,5 +1,6 @@
 """Network service discovery scanner using python-nmap with safe fallback support."""
 
+import hashlib
 import logging
 import shutil
 import uuid
@@ -81,8 +82,8 @@ class NmapScannerEngine:
         )
 
     def _generate_simulated_scan_result(self, scan_id: str, target: str, start_time: datetime) -> HostScanResult:
-        """Provide standard simulated scan services for testing & development."""
-        simulated_services = [
+        """Provide dynamic simulated scan services derived from the target address."""
+        pool = [
             ServiceInfo(
                 port=22,
                 protocol="tcp",
@@ -119,7 +120,44 @@ class NmapScannerEngine:
                 version="5.7.31",
                 cpe="cpe:/a:oracle:mysql:5.7.31",
             ),
+            ServiceInfo(
+                port=8080,
+                protocol="tcp",
+                state="open",
+                service_name="http-proxy",
+                product="Nginx",
+                version="1.20.0",
+                cpe="cpe:/a:igor_sysoev:nginx:1.20.0",
+            ),
+            ServiceInfo(
+                port=5432,
+                protocol="tcp",
+                state="open",
+                service_name="postgresql",
+                product="PostgreSQL",
+                version="11.2",
+                cpe="cpe:/a:postgresql:postgresql:11.2",
+            ),
         ]
+
+        # Use MD5 hash of target string to deterministically select open services
+        target_hash = int(hashlib.md5(target.encode("utf-8")).hexdigest(), 16)
+        
+        # Select 2 to 4 services deterministically based on hash
+        count = 2 + (target_hash % 3)  # 2, 3, or 4 services
+        simulated_services = []
+        indices_used = set()
+        
+        for i in range(count):
+            idx = (target_hash + i * 7) % len(pool)
+            while idx in indices_used:
+                idx = (idx + 1) % len(pool)
+            indices_used.add(idx)
+            simulated_services.append(pool[idx])
+
+        # Sort selected services by port number
+        simulated_services.sort(key=lambda s: s.port)
+
         duration = (datetime.utcnow() - start_time).total_seconds()
         return HostScanResult(
             scan_id=scan_id,
