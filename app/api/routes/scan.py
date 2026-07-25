@@ -1,5 +1,7 @@
 """API router for network service scanning and automated vulnerability assessment."""
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Query
 from app.scanner.scanner import NmapScannerEngine
 from app.cve_engine.cve_engine import NVDCVEEngine
@@ -12,6 +14,8 @@ from app.utils.schemas import (
     ScanAssessmentSummary,
     VulnerabilityFinding,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scan", tags=["vulnerability-scan"])
 
@@ -31,17 +35,22 @@ async def run_vulnerability_assessment(request: PortScanRequest) -> ScanAssessme
             allow_fallback=request.use_mock_fallback,
         )
 
+        logger.info(f"Scan found {len(scan_result.services)} services for target '{request.target}'")
+        for svc in scan_result.services:
+            logger.info(f"  Port {svc.port}/{svc.protocol}: product={svc.product!r} version={svc.version!r} service_name={svc.service_name!r}")
+
         raw_cve_matches = []
         
-        # Step 2: Match detected services against NVD CVE engine
+        # Step 2: Match detected services against CVE engine
         for s in scan_result.services:
             prod_name = s.product or s.service_name
             if prod_name and prod_name.lower() != "unknown":
                 cves = cve_engine.search_cves_for_service(
                     product=prod_name,
                     version=s.version,
-                    use_local_fallback=request.use_mock_fallback,
+                    use_local_fallback=True,
                 )
+                logger.info(f"  CVE lookup for '{prod_name}': {len(cves)} matches")
                 for c in cves:
                     raw_cve_matches.append((s.port, s.service_name, prod_name, c))
 
