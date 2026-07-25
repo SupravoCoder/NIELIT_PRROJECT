@@ -6,6 +6,7 @@ import shutil
 import uuid
 from datetime import datetime
 from typing import Dict, Any
+from urllib.parse import urlparse
 
 try:
     import nmap
@@ -26,8 +27,20 @@ class NmapScannerEngine:
         self.has_nmap_binary = self.nmap_path is not None
         logger.info(f"Nmap Scanner initialized. Binary available: {self.has_nmap_binary}")
 
+    @staticmethod
+    def _sanitize_target(target: str) -> str:
+        """Extract clean hostname or IP address from input URL or string."""
+        cleaned = target.strip()
+        if cleaned.startswith("http://") or cleaned.startswith("https://"):
+            parsed = urlparse(cleaned)
+            cleaned = parsed.hostname or cleaned
+        else:
+            cleaned = cleaned.split("/")[0].split(":")[0].strip()
+        return cleaned
+
     def execute_scan(self, target: str, arguments: str = "-sV -T4 -F", allow_fallback: bool = True) -> HostScanResult:
         """Execute service version scan against target host."""
+        target = self._sanitize_target(target)
         scan_id = str(uuid.uuid4())
         start_time = datetime.utcnow()
 

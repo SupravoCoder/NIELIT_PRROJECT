@@ -183,7 +183,7 @@ def render_scan_page():
     with st.form("scan_form"):
         col1, col2 = st.columns([3, 1])
         with col1:
-            target_ip = st.text_input("Target IP Address / Domain", value="192.168.1.10", help="e.g., 127.0.0.1 or 192.168.1.10")
+            target_ip = st.text_input("Target IP Address / Domain", value="www.itsecgames.com", help="e.g., scanme.nmap.org or www.itsecgames.com")
         with col2:
             scan_args = st.selectbox("Scan Profile", options=["-sV -T4 -F (Fast Version Scan)", "-sV -T4 (Standard Port Scan)"])
 
