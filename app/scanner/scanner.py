@@ -38,9 +38,11 @@ class NmapScannerEngine:
             cleaned = cleaned.split("/")[0].split(":")[0].strip()
         return cleaned
 
-    def execute_scan(self, target: str, arguments: str = "-sV -T4 -F", allow_fallback: bool = True) -> HostScanResult:
+    def execute_scan(self, target: str, arguments: str = "-Pn -sV -T4 -F", allow_fallback: bool = True) -> HostScanResult:
         """Execute service version scan against target host."""
         target = self._sanitize_target(target)
+        if "-Pn" not in arguments:
+            arguments = f"-Pn {arguments}"
         scan_id = str(uuid.uuid4())
         start_time = datetime.utcnow()
 

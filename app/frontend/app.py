@@ -185,12 +185,10 @@ def render_scan_page():
         with col1:
             target_ip = st.text_input("Target IP Address / Domain", value="www.itsecgames.com", help="e.g., scanme.nmap.org or www.itsecgames.com")
         with col2:
-            scan_args = st.selectbox("Scan Profile", options=["-sV -T4 -F (Fast Version Scan)", "-sV -T4 (Standard Port Scan)"])
+            scan_args = st.selectbox("Scan Profile", options=["-Pn -sV -T4 -F (Fast Version Scan)", "-Pn -sV -T4 (Standard Port Scan)"])
 
         use_mock = st.checkbox("Enable Simulated Fallback Mode (Recommended if Nmap binary absent)", value=True)
         submit_button = st.form_submit_button("🚀 Start Vulnerability Assessment", use_container_width=True)
-
-
 
     if submit_button:
         with st.spinner(f"Scanning target '{target_ip}' and querying NVD CVE database..."):
@@ -200,7 +198,7 @@ def render_scan_page():
                     "scan_arguments": scan_args.split(" (")[0],
                     "use_mock_fallback": use_mock,
                 }
-                resp = requests.post(f"{API_BASE_URL}/scan", json=payload, timeout=15)
+                resp = requests.post(f"{API_BASE_URL}/scan", json=payload, timeout=120)
                 if resp.status_code == 200:
                     summary_data = resp.json()
                     st.session_state["last_scan"] = summary_data
