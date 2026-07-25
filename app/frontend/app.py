@@ -198,15 +198,33 @@ def render_scan_page():
             scan_args = st.selectbox("Scan Profile", options=["-sT -Pn -sV -T4 -F (Fast Live Connect Scan)", "-sT -Pn -sV -T4 (Full Live Connect Scan)"])
 
         use_mock = st.checkbox("Enable Simulated Fallback Mode (Recommended if Nmap binary absent)", value=False)
+        ai_choice = st.selectbox(
+            "AI Explanation Engine (100% Free Modes Available)",
+            options=[
+                "🛡️ Local Air-Gapped Ollama AI (100% Free & Private)",
+                "⚡ Expert Security Templates (100% Free & Fast)",
+                "🌐 OpenAI Cloud AI",
+            ],
+            help="Choose between 100% free Local Ollama LLM, fast free template rules, or cloud AI.",
+        )
         submit_button = st.form_submit_button("🚀 Start Vulnerability Assessment", use_container_width=True)
 
     if submit_button:
-        with st.spinner(f"Scanning target '{target_ip}' and querying NVD CVE database..."):
+        provider_map = {
+            "🛡️ Local Air-Gapped Ollama AI (100% Free & Private)": "ollama",
+            "⚡ Expert Security Templates (100% Free & Fast)": "template",
+            "🌐 OpenAI Cloud AI": "openai",
+        }
+        chosen_provider = provider_map.get(ai_choice, "auto")
+
+        with st.spinner(f"Scanning target '{target_ip}' and generating AI remediation analysis..."):
             try:
                 payload = {
                     "target": target_ip,
                     "scan_arguments": scan_args.split(" (")[0],
                     "use_mock_fallback": use_mock,
+                    "ai_provider": chosen_provider,
+                    "ollama_model": "llama3",
                 }
                 resp = requests.post(f"{API_BASE_URL}/scan", json=payload, timeout=120)
                 if resp.status_code == 200:

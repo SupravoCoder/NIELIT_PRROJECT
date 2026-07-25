@@ -74,7 +74,9 @@ async def run_vulnerability_assessment(request: PortScanRequest) -> ScanAssessme
                     description=f.cve.description,
                     cvss_score=f.cve.cvss_score,
                     severity=f.severity.value,
-                )
+                ),
+                provider=request.ai_provider,
+                ollama_model=request.ollama_model,
             )
 
             f.llm_explanation = analysis.plain_explanation

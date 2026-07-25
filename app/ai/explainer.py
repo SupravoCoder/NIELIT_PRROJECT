@@ -1,23 +1,45 @@
-"""AI explanation and remediation generation layer for security findings."""
+"""AI explanation and remediation generation layer with Local Ollama & Cloud LLM support."""
 
 import os
 import logging
 from typing import Optional
-from app.utils.schemas import CVERecord, LLMAnalysisRequest, LLMAnalysisResponse
+from app.ai.ollama_client import OllamaClient
+from app.utils.schemas import LLMAnalysisRequest, LLMAnalysisResponse
 
 logger = logging.getLogger(__name__)
 
 
 class LLMExplainer:
-    """Generates plain-language vulnerability explanations and patch recommendations."""
+    """Generates plain-language vulnerability explanations using Local Ollama, Cloud LLM, or Template fallbacks."""
 
-    def __init__(self, api_key: Optional[str] = None) -> None:
+    def __init__(self, api_key: Optional[str] = None, ollama_host: Optional[str] = None) -> None:
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.ollama_client = OllamaClient(host=ollama_host)
 
-    def explain_vulnerability(self, request: LLMAnalysisRequest) -> LLMAnalysisResponse:
-        """Generate structured security explanation and remediation steps."""
+    def explain_vulnerability(
+        self,
+        request: LLMAnalysisRequest,
+        provider: str = "auto",
+        ollama_model: str = "llama3",
+    ) -> LLMAnalysisResponse:
+        """Generate structured security explanation using specified AI provider."""
+        
+        # 1. Local Air-Gapped Ollama Mode (100% Free & Private)
+        if provider in ["auto", "ollama"] and self.ollama_client.is_available():
+            logger.info(f"Using Local Air-Gapped Ollama LLM (model='{ollama_model}') for {request.cve_id}")
+            ollama_res = self.ollama_client.generate_explanation(
+                cve_id=request.cve_id,
+                product=request.product,
+                version=request.version,
+                description=request.description,
+                cvss_score=request.cvss_score,
+                model=ollama_model,
+            )
+            if ollama_res:
+                return LLMAnalysisResponse(**ollama_res)
 
-        # Template-based expert security advisor generator
+        # 2. Rule-Based Template Fallback (100% Free & Instant)
+        logger.info(f"Using Expert Rule-Based Template Engine for {request.cve_id}")
         plain_expl = (
             f"The software '{request.product}' version {request.version} contains a known security flaw ({request.cve_id}). "
             f"Specifically, {request.description}"

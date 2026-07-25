@@ -18,6 +18,8 @@ class PortScanRequest(BaseModel):
     target: str = Field(..., description="Target IP address or domain hostname (e.g., 127.0.0.1 or 192.168.1.10)")
     scan_arguments: str = Field(default="-sV -T4 -F", description="Nmap scan argument string")
     use_mock_fallback: bool = Field(default=True, description="Enable simulated scan fallback if Nmap binary is absent")
+    ai_provider: str = Field(default="auto", description="AI Provider: 'auto', 'ollama', 'openai', or 'template'")
+    ollama_model: str = Field(default="llama3", description="Model tag if using Ollama (e.g. 'llama3', 'mistral')")
 
 
 class ServiceInfo(BaseModel):
