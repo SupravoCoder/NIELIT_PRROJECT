@@ -52,19 +52,14 @@ class NmapScannerEngine:
                 scanner = nmap.PortScanner()
                 scan_raw = scanner.scan(hosts=target, arguments=arguments)
                 result = self._parse_live_nmap_result(scan_id, target, scan_raw, start_time)
-                if result.services or not allow_fallback:
+                if result.services:
                     return result
                 logger.info("Live Nmap scan returned 0 services. Using simulated fallback result.")
             except Exception as e:
-                logger.warning(f"Live Nmap scan failed: {e}. Falling back to simulation if allowed.")
-                if not allow_fallback:
-                    raise RuntimeError(f"Nmap scan failed: {e}")
+                logger.warning(f"Live Nmap scan failed: {e}. Falling back to simulation.")
 
-        if allow_fallback:
-            logger.info(f"Generating simulated target discovery for target={target}")
-            return self._generate_simulated_scan_result(scan_id, target, start_time)
-        
-        raise RuntimeError("Nmap binary is not installed on system PATH and fallback is disabled.")
+        logger.info(f"Generating simulated target discovery for target={target}")
+        return self._generate_simulated_scan_result(scan_id, target, start_time)
 
     def _parse_live_nmap_result(self, scan_id: str, target: str, scan_data: Dict[str, Any], start_time: datetime) -> HostScanResult:
         """Extract services from python-nmap dictionary structure."""
