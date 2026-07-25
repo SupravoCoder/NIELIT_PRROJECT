@@ -38,28 +38,41 @@ class NmapScannerEngine:
             cleaned = cleaned.split("/")[0].split(":")[0].strip()
         return cleaned
 
-    def execute_scan(self, target: str, arguments: str = "-Pn -sV -T4 -F", allow_fallback: bool = True) -> HostScanResult:
-        """Execute service version scan against target host."""
+    def execute_scan(self, target: str, arguments: str = "-sT -sV -T4 -F", allow_fallback: bool = False) -> HostScanResult:
+        """Execute service version scan against target host using TCP connect scan."""
         target = self._sanitize_target(target)
+        
+        # Enforce -sT (TCP Connect scan) for compatibility with unprivileged cloud containers
+        if "-sT" not in arguments and "-sS" not in arguments:
+            arguments = f"-sT {arguments}"
         if "-Pn" not in arguments:
             arguments = f"-Pn {arguments}"
+
         scan_id = str(uuid.uuid4())
         start_time = datetime.utcnow()
 
         if self.has_nmap_binary and HAS_NMAP_LIB:
             try:
-                logger.info(f"Executing live Nmap scan on target={target} args='{arguments}'")
+                logger.info(f"Executing live TCP Connect scan on target={target} args='{arguments}'")
                 scanner = nmap.PortScanner()
                 scan_raw = scanner.scan(hosts=target, arguments=arguments)
                 result = self._parse_live_nmap_result(scan_id, target, scan_raw, start_time)
-                if result.services:
+                
+                # If fallback is explicitly disabled by the user, return real results directly
+                if result.services or not allow_fallback:
                     return result
-                logger.info("Live Nmap scan returned 0 services. Using simulated fallback result.")
+                    
+                logger.info("Live Nmap scan returned 0 open ports. Using fallback profile.")
             except Exception as e:
-                logger.warning(f"Live Nmap scan failed: {e}. Falling back to simulation.")
+                logger.warning(f"Live Nmap scan failed: {e}")
+                if not allow_fallback:
+                    raise RuntimeError(f"Live Nmap scan failed: {e}")
 
-        logger.info(f"Generating simulated target discovery for target={target}")
-        return self._generate_simulated_scan_result(scan_id, target, start_time)
+        if allow_fallback:
+            logger.info(f"Generating simulated target discovery for target={target}")
+            return self._generate_simulated_scan_result(scan_id, target, start_time)
+        
+        raise RuntimeError("Nmap binary is not installed or accessible on system PATH.")
 
     def _parse_live_nmap_result(self, scan_id: str, target: str, scan_data: Dict[str, Any], start_time: datetime) -> HostScanResult:
         """Extract services from python-nmap dictionary structure."""

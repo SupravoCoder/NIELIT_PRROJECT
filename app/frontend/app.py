@@ -195,7 +195,7 @@ def render_scan_page():
         with col1:
             target_ip = st.text_input("Target IP Address / Domain", value="www.itsecgames.com", help="e.g., scanme.nmap.org or www.itsecgames.com")
         with col2:
-            scan_args = st.selectbox("Scan Profile", options=["-Pn -sV -T4 -F (Fast Version Scan)", "-Pn -sV -T4 (Standard Port Scan)"])
+            scan_args = st.selectbox("Scan Profile", options=["-sT -Pn -sV -T4 -F (Fast Live Connect Scan)", "-sT -Pn -sV -T4 (Full Live Connect Scan)"])
 
         use_mock = st.checkbox("Enable Simulated Fallback Mode (Recommended if Nmap binary absent)", value=False)
         submit_button = st.form_submit_button("🚀 Start Vulnerability Assessment", use_container_width=True)
